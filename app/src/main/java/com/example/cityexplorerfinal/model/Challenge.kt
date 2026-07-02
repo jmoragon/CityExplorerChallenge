@@ -3,7 +3,7 @@ package com.example.cityexplorerfinal.model
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "challenge_history")
+@Entity(tableName = "challenges")
 data class Challenge(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val title: String,
@@ -11,8 +11,9 @@ data class Challenge(
     val distance: Double,
     val category: String,
     val challengeType: String,
-    val status: String, // "ACTIVE", "COMPLETED", "EXPIRED"
+    val status: String,
     val placeId: String,
-    val reasoning: String, // La explicación para la pantalla de Detalles
-    val completionTime: String? = null // Fecha en la que se completó
+    val completionTime: String? = null,
+    val reasoning: String? = null,
+    val photoUrl: String? = null
 )
