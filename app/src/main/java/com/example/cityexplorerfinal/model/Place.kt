@@ -7,5 +7,6 @@ data class Place(
     val latitude: Double,
     val longitude: Double,
     val category: String,
-    val distance: Double
+    val distance: Double,
+    val photoUrl: String? = null
 )
