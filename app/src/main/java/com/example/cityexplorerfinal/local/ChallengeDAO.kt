@@ -1,14 +1,22 @@
 package com.example.cityexplorerfinal.local
 
-import androidx.room.Database
-import androidx.room.RoomDatabase
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
 import com.example.cityexplorerfinal.model.Challenge
 
-// Incrementamos la versión a 2 para forzar a Room a aplicar la migración destructiva
-@Database(entities = [Challenge::class], version = 7, exportSchema = false)
-abstract class AppDatabase : RoomDatabase() {
+@Dao
+interface ChallengeDAO {
 
-    // Conectamos la base de datos con tu nuevo DAO
-    abstract fun challengeDao(): ChallengeDAO
+    // CORRECCIÓN: Ahora busca en la tabla correcta "challenges"
+    @Query("SELECT * FROM challenges")
+    fun getAllChallenges(): List<Challenge>
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertChallenge(challenge: Challenge)
+
+    // CORRECCIÓN: Ahora borra de la tabla correcta "challenges" (si usas esta función)
+    @Query("DELETE FROM challenges")
+    fun deleteAllChallenges()
 }
