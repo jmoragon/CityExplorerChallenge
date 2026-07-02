@@ -12,7 +12,7 @@ import kotlin.math.*
 class GooglePlacesApiService {
     private val client = OkHttpClient()
     // REQUISITO 5.2: Recuerda borrar esta clave antes de hacer el "git push" a tu repositorio
-    private val googleApiKey = "AIzaSyABlQhnV0mHKjjnRtA0ZYpEnmgGkRWltmE"
+    private val googleApiKey = "INTRODUCE_YOUR_GOOGLE_PLACES_API_CODE"
 
     // 3.2 External Data Sources: Fetching real places using ONLY Google Places API
     suspend fun fetchNearbyPlaces(lat: Double, lon: Double): List<Place> = withContext(Dispatchers.IO) {
@@ -50,8 +50,7 @@ class GooglePlacesApiService {
 
                         var category = "Social"
                         if (item.has("types")) {
-                            val types = item.getJSONArray("types")
-                            val typesString = types.toString()
+                            val typesString = item.getJSONArray("types").toString()
                             category = when {
                                 typesString.contains("cafe") || typesString.contains("restaurant") -> "Food"
                                 typesString.contains("museum") || typesString.contains("art_gallery") -> "Culture"
@@ -63,7 +62,17 @@ class GooglePlacesApiService {
                         val rating = item.optDouble("rating", 0.0)
                         val distance = calculateDistance(lat, lon, pLat, pLon)
 
-                        places.add(Place(id, name, "Google Rating: $rating/5.0", pLat, pLon, category, kotlin.math.round(distance)))
+                        // NUEVO: Obtener la foto de Google Places
+                        var photoUrl: String? = null
+                        if (item.has("photos")) {
+                            val photos = item.getJSONArray("photos")
+                            if (photos.length() > 0) {
+                                val photoRef = photos.getJSONObject(0).getString("photo_reference")
+                                photoUrl = "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=$photoRef&key=$googleApiKey"
+                            }
+                        }
+
+                        places.add(Place(id, name, "Google Rating: $rating/5.0", pLat, pLon, category, kotlin.math.round(distance), photoUrl))
                     }
                 } else if (json.has("error_message")) {
                     // Si Google nos da un error de permisos o facturación
