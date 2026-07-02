@@ -1,21 +1,14 @@
 package com.example.cityexplorerfinal.local
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.Query
+import androidx.room.Database
+import androidx.room.RoomDatabase
 import com.example.cityexplorerfinal.model.Challenge
 
-@Dao
-interface ChallengeDao {
-    @Insert
-    fun insertChallenge(challenge: Challenge)
+// Incrementamos la versión a 2 para forzar a Room a aplicar la migración destructiva
+@Database(entities = [Challenge::class], version = 7, exportSchema = false)
+abstract class AppDatabase : RoomDatabase() {
 
-    @Query("SELECT * FROM challenge_history ORDER BY id DESC")
-    fun getAllChallenges(): List<Challenge>
+    // Conectamos la base de datos con tu nuevo DAO
+    abstract fun challengeDao(): ChallengeDAO
 
-    @Query("SELECT * FROM challenge_history WHERE status = 'ACTIVE' LIMIT 1")
-    fun getActiveChallenge(): Challenge?
-
-    @Query("UPDATE challenge_history SET status = 'COMPLETED', completionTime = :time WHERE id = :challengeId")
-    fun markChallengeAsCompleted(challengeId: Int, time: String)
 }
