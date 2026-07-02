@@ -4,7 +4,6 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,11 +23,7 @@ import com.example.cityexplorerfinal.local.AppDatabase
 import com.example.cityexplorerfinal.model.Challenge
 import com.example.cityexplorerfinal.model.Place
 import com.example.cityexplorerfinal.ui.theme.CityExplorerFinalTheme
-import com.example.cityexplorerfinal.ui.screens.HistoryScreen
-import com.example.cityexplorerfinal.ui.screens.MapScreen
-import com.example.cityexplorerfinal.ui.screens.StatisticsScreen
-import com.example.cityexplorerfinal.ui.theme.screens.ChallengeDetailsScreen
-import com.example.cityexplorerfinal.ui.theme.screens.MainScreen
+import com.example.cityexplorerfinal.ui.screens.*
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -41,6 +36,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "city_database")
             .allowMainThreadQueries()
+            .fallbackToDestructiveMigration()
             .build()
 
         setContent {
@@ -59,11 +55,9 @@ fun AppNavigation(db: AppDatabase) {
     var historyList by remember { mutableStateOf(db.challengeDao().getAllChallenges()) }
     var nearbyPlaces by remember { mutableStateOf<List<Place>>(emptyList()) }
 
-    // Herramientas de GPS
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     var userLocation by remember { mutableStateOf<GeoPoint?>(null) }
-    var locationError by remember { mutableStateOf<String?>(null) }
 
     val apiService = remember { GooglePlacesApiService() }
     val engine = remember { ChallengeGeneratorEngine() }
@@ -71,10 +65,23 @@ fun AppNavigation(db: AppDatabase) {
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
         if (perms[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
-            Toast.makeText(context, "Location permission granted. Ready to generate!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Permiso GPS concedido. ¡Ya puedes generar un reto!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Auto-carga inicial del GPS (sin forzar dibujados extraños)
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                if (location != null) {
+                    userLocation = GeoPoint(location.latitude, location.longitude)
+                    coroutineScope.launch {
+                        nearbyPlaces = apiService.fetchNearbyPlaces(location.latitude, location.longitude)
+                    }
+                }
+            }
         } else {
-            locationError = "Location permission is required for the app to function."
-            Toast.makeText(context, locationError, Toast.LENGTH_LONG).show()
+            permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
         }
     }
 
@@ -83,6 +90,8 @@ fun AppNavigation(db: AppDatabase) {
             MainScreen(
                 activeChallenge = activeChallenge,
                 historyList = historyList,
+                nearbyPlaces = nearbyPlaces,
+                userLocation = userLocation,
                 onOpenMapClick = { currentScreen = "MAP" },
                 onDetailsClick = { currentScreen = "DETAILS" },
                 onGenerateNewClick = {
@@ -90,7 +99,6 @@ fun AppNavigation(db: AppDatabase) {
                         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                             if (location != null) {
                                 userLocation = GeoPoint(location.latitude, location.longitude)
-
                                 coroutineScope.launch {
                                     nearbyPlaces = apiService.fetchNearbyPlaces(location.latitude, location.longitude)
                                     val newChallenge = engine.generateChallenge(nearbyPlaces, historyList, null)
@@ -100,22 +108,23 @@ fun AppNavigation(db: AppDatabase) {
                                     } else {
                                         activeChallenge = Challenge(
                                             title = "Free Exploration",
-                                            description = "No specific spots matched your criteria nearby. Take a free walk and discover the unexpected!",
+                                            description = "No specific spots found nearby.",
                                             distance = 500.0,
                                             category = "Exploration",
                                             challengeType = "Fallback",
                                             status = "ACTIVE",
-                                            placeId = "fallback_${System.currentTimeMillis()}",
-                                            reasoning = "Fallback scenario triggered: API failed or Engine filtered all."
+                                            placeId = "fallback",
+                                            reasoning = "- All places filtered out by engine.\n- Or no places nearby."
                                         )
+                                        Toast.makeText(context, "No hay lugares nuevos. El algoritmo los ha filtrado todos.", Toast.LENGTH_LONG).show()
                                     }
                                 }
                             } else {
-                                Toast.makeText(context, "GPS data unavailable. Please set a location in Emulator settings and open Maps.", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "Abre Google Maps en el emulador para fijar tu ubicación", Toast.LENGTH_LONG).show()
                             }
                         }
                     } else {
-                        permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                        permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
                     }
                 },
                 onHistoryClick = { currentScreen = "HISTORY" },
@@ -124,10 +133,7 @@ fun AppNavigation(db: AppDatabase) {
         }
         "MAP" -> {
             activeChallenge?.let { challenge ->
-                // Buscamos las coordenadas del lugar en la lista de la API
                 val targetPlace = nearbyPlaces.find { it.id == challenge.placeId }
-
-                // Le pasamos las ubicaciones dinámicas a la pantalla del mapa
                 MapScreen(
                     activeChallenge = challenge,
                     userLocation = userLocation,
