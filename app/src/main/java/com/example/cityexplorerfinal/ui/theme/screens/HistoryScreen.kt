@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.cityexplorerfinal.model.Challenge
-import com.example.cityexplorerfinal.ui.theme.PastelBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,35 +19,24 @@ fun HistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Challenge History") },
+                title = { Text("Challenge History") },
                 navigationIcon = {
                     Button(onClick = onBackClick, modifier = Modifier.padding(8.dp)) {
-                        Text(text = "Back")
+                        Text("Back")
                     }
                 }
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (historyList.isEmpty()) {
-                item { Text(text = "No challenges completed yet. Go explore!") }
-            }
+        LazyColumn(contentPadding = paddingValues, modifier = Modifier.fillMaxSize().padding(16.dp)) {
             items(historyList) { challenge ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = PastelBlue.copy(alpha = 0.3f))
-                ) {
+                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = challenge.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                        Text("[${challenge.status}] ${challenge.title}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "Category: ${challenge.category} | Distance: ${challenge.distance}m")
-                        Text(text = "Completed: ${challenge.completionTime ?: "Unknown"}")
+                        Text("Category: ${challenge.category}")
+                        Text("Distance: ${challenge.distance} m")
+                        Text("Completed: ${challenge.completionTime ?: "N/A"}")
                     }
                 }
             }
