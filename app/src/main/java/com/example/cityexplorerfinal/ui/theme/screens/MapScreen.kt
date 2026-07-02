@@ -32,26 +32,16 @@ fun MapScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Map") },
-                navigationIcon = {
-                    Button(onClick = onBackClick, modifier = Modifier.padding(8.dp)) {
-                        Text("Back")
-                    }
-                }
+                navigationIcon = { Button(onClick = onBackClick, modifier = Modifier.padding(8.dp)) { Text("Back") } }
             )
         },
         bottomBar = {
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
+            Card(modifier = Modifier.fillMaxWidth().padding(16.dp), elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Target: ${activeChallenge.title.replace("Explore: ", "")}", fontWeight = FontWeight.Bold)
+                    Text("Target: ${activeChallenge.title.replace("Explore: ", "")}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                     Text("Distance: ${activeChallenge.distance} m")
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = onChallengeCompleted,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Button(onClick = onChallengeCompleted, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color(0xFF4CAF50))) {
                         Text("Check Completion")
                     }
                 }
@@ -66,9 +56,6 @@ fun MapScreen(
                     MapView(context).apply {
                         setTileSource(TileSourceFactory.MAPNIK)
                         setMultiTouchControls(true)
-                        zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
-
-                        // Centrar dinámicamente en la ubicación real del usuario
                         if (userLocation != null) {
                             controller.setZoom(16.0)
                             controller.setCenter(userLocation)
@@ -77,8 +64,6 @@ fun MapScreen(
                 },
                 update = { mapView ->
                     mapView.overlays.clear()
-
-                    // 1. Añadir marcador del USUARIO (Requisito 4.2.2)
                     if (userLocation != null) {
                         val userMarker = Marker(mapView).apply {
                             position = userLocation
@@ -87,18 +72,14 @@ fun MapScreen(
                         }
                         mapView.overlays.add(userMarker)
                     }
-
-                    // 2. Añadir marcador del DESTINO (Requisito 4.2.2)
                     if (targetPlace != null) {
-                        val targetGeoPoint = GeoPoint(targetPlace.latitude, targetPlace.longitude)
-                        val destinationMarker = Marker(mapView).apply {
-                            position = targetGeoPoint
+                        val destMarker = Marker(mapView).apply {
+                            position = GeoPoint(targetPlace.latitude, targetPlace.longitude)
                             title = targetPlace.name
                             icon = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_compass)
                         }
-                        mapView.overlays.add(destinationMarker)
+                        mapView.overlays.add(destMarker)
                     }
-
                     mapView.invalidate()
                 }
             )
